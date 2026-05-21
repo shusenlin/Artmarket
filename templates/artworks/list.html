@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>藏品列表 - ArtMarket</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-brand"><a href="/" class="nav-logo">ArtMarket</a></div>
+            {% include 'components/nav_links.html' %}
+        </nav>
+    </header>
+
+    <main class="page-shell">
+        <div class="page-heading">
+            <div>
+                <h2>藏品列表</h2>
+                <p>查看平台用户登记的藏品、登记人和收藏记录。</p>
+            </div>
+            {% if current_user.is_authenticated %}
+            <a class="btn btn-primary" href="{{ url_for('artworks.create_artwork') }}">登记藏品</a>
+            {% endif %}
+        </div>
+
+        <nav class="category-tabs" aria-label="藏品分类">
+            <a class="{{ 'is-active' if not selected_category and not selected_artist_profile_id else '' }}" href="{{ url_for('artworks.list_artworks') }}">全部</a>
+            {% for category in categories %}
+            <a class="{{ 'is-active' if selected_category == category else '' }}" href="{{ url_for('artworks.list_artworks', category=category) }}">{{ category }}</a>
+            {% endfor %}
+        </nav>
+
+        {% if artist_profiles %}
+        <div class="artist-chip-row">
+            <span>艺术家</span>
+            {% for artist in artist_profiles %}
+            <a class="{{ 'is-active' if selected_artist_profile_id|string == artist.id|string else '' }}" href="{{ url_for('artworks.list_artworks', artist_profile_id=artist.id) }}">
+                {{ artist.name }}{% if artist.is_verified %}<span class="verified-dot" title="已认证"></span>{% endif %}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <section class="artwork-grid">
+            {% for artwork in artworks %}
+            <article class="artwork-card">
+                <a href="{{ url_for('artworks.detail_artwork', artwork_id=artwork.id) }}" class="artwork-image-link">
+                    {% if artwork.image_url %}
+                    <img src="{{ artwork.image_url }}" alt="{{ artwork.title }}" class="artwork-image">
+                    {% else %}
+                    <div class="artwork-image artwork-image-empty">暂无图片</div>
+                    {% endif %}
+                </a>
+                <div class="artwork-info">
+                    <h4><a href="{{ url_for('artworks.detail_artwork', artwork_id=artwork.id) }}">{{ artwork.title }}</a></h4>
+                    {% if artwork.artist_profile %}
+                    <p class="text-light">
+                        艺术家：<a class="inline-link" href="{{ url_for('artworks.detail_artist', artist_id=artwork.artist_profile.id) }}">{{ artwork.artist_profile.name }}</a>
+                        {% if artwork.artist_profile.is_verified %}<span class="verified-badge">已认证</span>{% endif %}
+                    </p>
+                    {% endif %}
+                    <p class="text-light">类别：{{ artwork.category or '未分类' }}</p>
+                    {% if artwork.price is not none %}
+                    <p class="price">人民币 {{ '%.2f'|format(artwork.price) }} 元</p>
+                    {% endif %}
+                    <p class="text-light">登记时间：{{ artwork.registered_at.strftime('%Y-%m-%d %H:%M') if artwork.registered_at else artwork.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                </div>
+            </article>
+            {% else %}
+            <div class="empty-state">
+                <h3>暂无藏品</h3>
+                <p>登录后可以登记第一件藏品。</p>
+            </div>
+            {% endfor %}
+        </section>
+    </main>
+
+    <footer class="footer"><p>&copy; 2026 ArtMarket. All rights reserved.</p></footer>
+    {% include 'components/assistant_widget.html' %}
+</body>
+</html>

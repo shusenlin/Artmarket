@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ artist.name }} - ArtMarket</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-brand"><a href="/" class="nav-logo">ArtMarket</a></div>
+            {% include 'components/nav_links.html' %}
+        </nav>
+    </header>
+
+    <main class="page-shell">
+        <section class="artist-hero">
+            <div class="artist-card-avatar large">{{ artist.name[:1].upper() }}</div>
+            <div>
+                <h2>{{ artist.name }}{% if artist.is_verified %}<span class="verified-badge">已认证</span>{% endif %}</h2>
+                <p>{{ artist.nationality or '地区未知' }}{% if artist.birth_year %} · {{ artist.birth_year }} 年生{% endif %}</p>
+                <p>{{ artist.bio or '暂无艺术家简介。' }}</p>
+                {% if current_user.is_authenticated and current_user.role in ['admin', 'owner'] %}
+                <form method="POST" action="{{ url_for('owner.verify_artist', artist_id=artist.id) }}">
+                    <input type="hidden" name="is_verified" value="{{ 'false' if artist.is_verified else 'true' }}">
+                    <button class="btn btn-secondary" type="submit">{{ '取消认证' if artist.is_verified else '认证艺术家' }}</button>
+                </form>
+                {% endif %}
+            </div>
+        </section>
+
+        <div class="section-title">
+            <h3>艺术家藏品</h3>
+            <span class="text-light">{{ artworks|length }} 件</span>
+        </div>
+        <section class="artwork-grid">
+            {% for artwork in artworks %}
+            <article class="artwork-card">
+                <a href="{{ url_for('artworks.detail_artwork', artwork_id=artwork.id) }}" class="artwork-image-link">
+                    {% if artwork.image_url %}
+                    <img src="{{ artwork.image_url }}" alt="{{ artwork.title }}" class="artwork-image">
+                    {% else %}
+                    <div class="artwork-image artwork-image-empty">暂无图片</div>
+                    {% endif %}
+                </a>
+                <div class="artwork-info">
+                    <h4><a href="{{ url_for('artworks.detail_artwork', artwork_id=artwork.id) }}">{{ artwork.title }}</a></h4>
+                    <p class="text-light">类别：{{ artwork.category or '未分类' }}</p>
+                    {% if artwork.price is not none %}
+                    <p class="price">人民币 {{ '%.2f'|format(artwork.price) }} 元</p>
+                    {% endif %}
+                </div>
+            </article>
+            {% else %}
+            <div class="empty-state">
+                <h3>暂无藏品</h3>
+                <p>这位艺术家还没有关联藏品。</p>
+            </div>
+            {% endfor %}
+        </section>
+    </main>
+
+    <footer class="footer"><p>&copy; 2026 ArtMarket. All rights reserved.</p></footer>
+    {% include 'components/assistant_widget.html' %}
+</body>
+</html>

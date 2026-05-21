@@ -1,0 +1,36 @@
+<div class="ai-assistant"
+     data-ai-assistant
+     data-ai-user-id="{{ current_user.id if current_user.is_authenticated else 'guest' }}"
+     data-ai-authenticated="{{ 'true' if current_user.is_authenticated else 'false' }}">
+    <button class="ai-assistant-button" type="button" data-ai-toggle aria-label="打开艺术品鉴赏智能体">
+        <span>AI</span>
+    </button>
+
+    <aside class="ai-assistant-panel" data-ai-panel aria-hidden="true">
+        <div class="ai-assistant-header">
+            <div>
+                <h3>艺术品鉴赏智能体</h3>
+                <p>可鉴赏图片，也可继续追问艺术品相关问题</p>
+            </div>
+            <button class="ai-assistant-close" type="button" data-ai-close aria-label="关闭">×</button>
+        </div>
+
+        <div class="ai-assistant-messages" data-ai-messages>
+            <div class="ai-message ai-message-bot">
+                上传艺术品图片可获取结构化鉴赏意见；也可以直接追问风格、技法、登记文案等艺术品相关问题。
+            </div>
+        </div>
+
+        <form class="ai-assistant-form" data-ai-form>
+            <div class="ai-dropzone" data-ai-dropzone>
+                <strong>可选：拖拽图片到这里</strong>
+                <span>也可以直接复制图片后在此处粘贴，最多 5 张</span>
+            </div>
+            <div class="ai-preview" data-ai-preview></div>
+            <textarea name="message" rows="3" placeholder="输入追问，或补充材质、尺寸、来源、你想重点了解的问题"></textarea>
+            <button class="btn btn-primary btn-block" type="submit">发送</button>
+        </form>
+    </aside>
+</div>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/assistant.css') }}">
+<script src="{{ url_for('static', filename='js/assistant.js') }}" defer></script>

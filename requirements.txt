@@ -1,0 +1,30 @@
+# Core Framework
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# Database & ORM
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.23
+psycopg2-binary==2.9.9  # PostgreSQL driver
+
+# Cloud Storage
+oss2==2.18.5  # 阿里云 OSS SDK
+
+# Configuration & Environment
+python-dotenv==1.0.0
+
+# Database Migrations (Recommended)
+Flask-Migrate==4.0.5
+alembic==1.12.1
+
+# Production Deployment
+gunicorn==21.2.0
+
+# Development Tools
+Flask-DebugToolbar==0.14.1  # Optional: dev only
+
+# Utilities
+Pillow==10.1.0  # Image processing for artwork thumbnails
+python-slugify==8.0.1  # URL-friendly slugs for artwork pages
+Flask-Login==0.6.3
+openai>=1.0

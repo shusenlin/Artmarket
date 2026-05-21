@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArtMarket - 艺术品展示与交易平台</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <a href="/" class="nav-logo">ArtMarket</a>
+            </div>
+            {% include 'components/nav_links.html' %}
+        </nav>
+    </header>
+
+    <main class="main">
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-content">
+                <h2>记录每一件藏品的来处与故事</h2>
+                <p>登记图片、描述、创作心路与收藏编年史，建立可追溯的个人收藏档案</p>
+                <a href="{{ url_for('artworks.list_artworks') }}" class="btn btn-primary">浏览藏品</a>
+            </div>
+        </section>
+
+        <section class="category-showcase">
+            <div class="section-title">
+                <h3>藏品分类</h3>
+                <a class="inline-link" href="{{ url_for('artworks.list_artworks') }}">查看全部</a>
+            </div>
+            <div class="category-showcase-grid">
+                <a class="category-showcase-card painting" href="{{ url_for('artworks.list_artworks', category='绘画') }}">
+                    <span>绘画</span>
+                </a>
+                <a class="category-showcase-card calligraphy" href="{{ url_for('artworks.list_artworks', category='书法') }}">
+                    <span>书法</span>
+                </a>
+                <a class="category-showcase-card sculpture" href="{{ url_for('artworks.list_artworks', category='雕塑') }}">
+                    <span>雕塑</span>
+                </a>
+                <a class="category-showcase-card ceramic" href="{{ url_for('artworks.list_artworks', category='陶瓷') }}">
+                    <span>陶瓷</span>
+                </a>
+            </div>
+        </section>
+
+        <!-- Featured Artworks -->
+        <section class="featured">
+            <h3>最新登记</h3>
+            <div class="artwork-grid" id="artworkGrid">
+                <!-- 动态加载艺术品卡片 -->
+                <div class="artwork-card placeholder">
+                    <div class="artwork-image"></div>
+                    <div class="artwork-info">
+                        <h4>加载中...</h4>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features -->
+        <section class="features">
+            <div class="feature">
+                <span class="feature-icon">Record</span>
+                <h4>完整登记</h4>
+                <p>统一记录图片、描述、登记人和登记时间</p>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">Story</span>
+                <h4>创作心路</h4>
+                <p>保留创作背景、技法探索和作品表达</p>
+            </div>
+            <div class="feature">
+                <span class="feature-icon">Archive</span>
+                <h4>收藏编年</h4>
+                <p>沉淀每件藏品从创作到收藏的关键节点</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 ArtMarket. All rights reserved.</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% include 'components/assistant_widget.html' %}
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>所有者后台 - ArtMarket</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body>
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-brand"><a href="/" class="nav-logo">ArtMarket</a></div>
+            {% include 'components/nav_links.html' %}
+        </nav>
+    </header>
+
+    <main class="page-shell">
+        <div class="page-heading">
+            <div>
+                <h2>所有者后台</h2>
+                <p>查看用户信息、调整角色权限和账号状态，管理艺术家认证。</p>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="form-message {{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <section class="owner-table-wrap">
+            <table class="owner-table">
+                <thead>
+                    <tr>
+                        <th>用户</th>
+                        <th>邮箱</th>
+                        <th>角色</th>
+                        <th>状态</th>
+                        <th>加入时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>
+                            <div class="owner-user">
+                                <span class="nav-avatar">
+                                    {% if user.avatar %}
+                                    <img src="{{ user.avatar }}" alt="{{ user.username }}">
+                                    {% else %}
+                                    {{ user.username[:1].upper() }}
+                                    {% endif %}
+                                </span>
+                                <div>
+                                    <strong>{{ user.username }}</strong>
+                                    <span>ID {{ user.id }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            <form class="inline-form" method="POST" action="{{ url_for('owner.update_user_role', user_id=user.id) }}">
+                                <select name="role" {% if user.id == current_user.id %}title="不能移除自己的所有者权限"{% endif %}>
+                                    {% for role in role_options %}
+                                    <option value="{{ role }}" {% if user.role == role %}selected{% endif %}>{{ role }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button class="btn btn-secondary" type="submit">保存</button>
+                            </form>
+                        </td>
+                        <td>{{ '启用' if user.is_active else '禁用' }}</td>
+                        <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') if user.created_at else '未知' }}</td>
+                        <td>
+                            {% if user.id != current_user.id %}
+                            <form method="POST" action="{{ url_for('owner.update_user_status', user_id=user.id) }}">
+                                <input type="hidden" name="is_active" value="{{ 'false' if user.is_active else 'true' }}">
+                                <button class="comment-action {{ 'danger' if user.is_active else '' }}" type="submit">
+                                    {{ '禁用' if user.is_active else '启用' }}
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="text-light">当前账号</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section class="owner-table-wrap owner-section">
+            <div class="section-title">
+                <h3>艺术家档案</h3>
+                <span class="text-light">{{ artists|length }} 位艺术家</span>
+            </div>
+            <table class="owner-table">
+                <thead>
+                    <tr>
+                        <th>艺术家</th>
+                        <th>资料</th>
+                        <th>创建人</th>
+                        <th>认证状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for artist in artists %}
+                    <tr>
+                        <td>
+                            <strong>{{ artist.name }}</strong>
+                            {% if artist.is_verified %}
+                            <span class="verified-badge">已认证</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div>{{ artist.nationality or '国籍未知' }}{% if artist.birth_year %} · {{ artist.birth_year }}{% endif %}</div>
+                            <span class="text-light">{{ artist.bio or '暂无简介' }}</span>
+                            {% if artist.review_status == 'pending' %}
+                            <div class="pending-review-box">
+                                <strong>待审核修改</strong>
+                                <p>名称：{{ artist.pending_name or artist.name }}</p>
+                                <p>地区：{{ artist.pending_nationality or '未填写' }}{% if artist.pending_birth_year %} · {{ artist.pending_birth_year }}{% endif %}</p>
+                                <p>{{ artist.pending_bio or '暂无简介' }}</p>
+                            </div>
+                            {% elif artist.review_status == 'rejected' %}
+                            <div class="text-light">上次修改未通过{% if artist.review_note %}：{{ artist.review_note }}{% endif %}</div>
+                            {% endif %}
+                        </td>
+                        <td>{{ artist.created_by.username if artist.created_by else '未知' }}</td>
+                        <td>
+                            <div>{{ '已认证' if artist.is_verified else '未认证' }}</div>
+                            <span class="text-light">
+                                {% if artist.review_status == 'pending' %}审核中{% elif artist.review_status == 'rejected' %}审核未通过{% else %}审核通过{% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('owner.verify_artist', artist_id=artist.id) }}">
+                                <input type="hidden" name="is_verified" value="{{ 'false' if artist.is_verified else 'true' }}">
+                                <button class="btn btn-secondary" type="submit">{{ '取消认证' if artist.is_verified else '认证' }}</button>
+                            </form>
+                            {% if artist.review_status == 'pending' %}
+                            <form class="stacked-form" method="POST" action="{{ url_for('owner.review_artist_update', artist_id=artist.id) }}">
+                                <button class="btn btn-secondary" name="action" value="approve" type="submit">通过修改</button>
+                                <input name="review_note" type="text" placeholder="不通过原因">
+                                <button class="comment-action danger" name="action" value="reject" type="submit">不通过</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-light">暂无艺术家档案</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <footer class="footer"><p>&copy; 2026 ArtMarket. All rights reserved.</p></footer>
+    {% include 'components/assistant_widget.html' %}
+</body>
+</html>

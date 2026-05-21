@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - ArtMarket</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body>
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <a href="/" class="nav-logo">ArtMarket</a>
+            </div>
+            {% include 'components/nav_links.html' %}
+        </nav>
+    </header>
+
+    <main class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h2>创建账户</h2>
+                <p>加入 ArtMarket，开始登记和鉴赏藏品</p>
+            </div>
+
+            <div id="formMessage" class="form-message" role="alert" hidden></div>
+
+            <form id="registerForm" class="auth-form" method="POST" action="{{ url_for('auth.register') }}">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" required placeholder="2-20个字符" minlength="2" maxlength="20" autocomplete="username">
+                    <small>用于展示和评论</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">邮箱</label>
+                    <input type="email" id="email" name="email" required placeholder="your@email.com" autocomplete="email">
+                    <small>用于登录</small>
+                </div>
+
+                <div class="form-row form-row-single">
+                    <div class="form-group">
+                        <label for="password">密码</label>
+                        <input type="password" id="password" name="password" required placeholder="至少6个字符" minlength="6" autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm_password">确认密码</label>
+                        <input type="password" id="confirm_password" name="confirm_password" required placeholder="再次输入密码" autocomplete="new-password">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">创建账户</button>
+            </form>
+
+            <div class="auth-footer">
+                <p>已有账户? <a href="{{ url_for('auth.login') }}" class="link-primary">立即登录</a></p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 ArtMarket. All rights reserved.</p>
+    </footer>
+
+    <script>
+        const password = document.getElementById('password');
+        const confirm = document.getElementById('confirm_password');
+        const messageBox = document.getElementById('formMessage');
+
+        function showMessage(text, type) {
+            messageBox.textContent = text;
+            messageBox.className = `form-message ${type}`;
+            messageBox.hidden = false;
+        }
+
+        function validatePasswords() {
+            confirm.setCustomValidity(confirm.value && password.value !== confirm.value ? '两次输入的密码不一致' : '');
+        }
+
+        password.addEventListener('input', validatePasswords);
+        confirm.addEventListener('input', validatePasswords);
+
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (password.value !== confirm.value) {
+                showMessage('两次输入的密码不一致', 'error');
+                return;
+            }
+
+            const form = e.target;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = '注册中...';
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: document.getElementById('username').value,
+                        email: document.getElementById('email').value,
+                        password: password.value,
+                        confirm_password: confirm.value
+                    })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    window.location.href = '/';
+                } else {
+                    showMessage(data.error || '注册失败，请检查输入信息', 'error');
+                }
+            } catch (error) {
+                showMessage('网络错误，请稍后重试', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        });
+    </script>
+    {% include 'components/assistant_widget.html' %}
+</body>
+</html>

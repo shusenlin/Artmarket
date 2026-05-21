@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人信息 - ArtMarket</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body>
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-brand"><a href="/" class="nav-logo">ArtMarket</a></div>
+            {% include 'components/nav_links.html' %}
+        </nav>
+    </header>
+
+    <main class="page-shell">
+        <section class="profile-layout">
+            <div class="profile-panel">
+                <div class="profile-avatar">
+                    {% if current_user.avatar %}
+                    <img src="{{ current_user.avatar }}" alt="{{ current_user.username }}">
+                    {% else %}
+                    <span>{{ current_user.username[:1].upper() }}</span>
+                    {% endif %}
+                </div>
+                <h2>{{ current_user.username }}</h2>
+                <p>{{ current_user.email }}</p>
+                <p class="profile-bio">{{ current_user.bio or '暂未填写个人介绍。' }}</p>
+                <dl class="meta-list compact">
+                    <div><dt>角色</dt><dd>{{ current_user.role }}</dd></div>
+                    <div><dt>加入时间</dt><dd>{{ current_user.created_at.strftime('%Y-%m-%d') if current_user.created_at else '未知' }}</dd></div>
+                    <div><dt>登记藏品</dt><dd>{{ artworks|length }} 件</dd></div>
+                </dl>
+            </div>
+
+            <div class="profile-main">
+                <section class="wide-form-card inline-card">
+                    <div class="section-title">
+                        <h3>编辑个人信息</h3>
+                    </div>
+
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="form-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                    {% endif %}
+                    {% endwith %}
+
+                    <form class="auth-form" method="POST" action="{{ url_for('profile.profile') }}" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="username">用户名</label>
+                            <input id="username" name="username" type="text" required minlength="2" maxlength="80" value="{{ current_user.username }}" placeholder="用于展示和评论">
+                        </div>
+                        <div class="form-group">
+                            <label for="avatar_image">个人头像</label>
+                            <input id="avatar_image" name="avatar_image" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+                            <small>不上传新头像时会保留当前头像。</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="bio">个人介绍</label>
+                            <textarea id="bio" name="bio" rows="4" placeholder="介绍你的收藏方向、艺术兴趣或创作经历">{{ current_user.bio or '' }}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">保存个人信息</button>
+                    </form>
+                </section>
+
+                <section class="profile-artworks">
+                    <div class="section-title">
+                        <h3>我登记的藏品</h3>
+                        <a href="{{ url_for('artworks.create_artwork') }}" class="link-primary">新增登记</a>
+                    </div>
+                    <div class="artwork-grid compact-grid">
+                        {% for artwork in artworks %}
+                        <article class="artwork-card profile-artwork-card">
+                            <div class="artwork-card-media">
+                                <a href="{{ url_for('artworks.detail_artwork', artwork_id=artwork.id) }}" aria-label="查看 {{ artwork.title }} 详情">
+                                {% if artwork.image_url %}
+                                <img src="{{ artwork.image_url }}" alt="{{ artwork.title }}" class="artwork-image">
+                                {% else %}
+                                <div class="artwork-image artwork-image-empty">暂无图片</div>
+                                {% endif %}
+                                </a>
+                            </div>
+                            <div class="artwork-info">
+                                <h4>
+                                    <a class="artwork-title-link" href="{{ url_for('artworks.detail_artwork', artwork_id=artwork.id) }}">{{ artwork.title }}</a>
+                                </h4>
+                                <p class="price" data-price-display="{{ artwork.id }}">
+                                    标价：{% if artwork.price is not none %}人民币 {{ '%.2f'|format(artwork.price) }} 元{% else %}未设置{% endif %}
+                                </p>
+                                <p class="text-light">{{ artwork.registered_at.strftime('%Y-%m-%d %H:%M') if artwork.registered_at else artwork.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                            </div>
+                            <div class="price-editor-panel">
+                                <h5>价格管理</h5>
+                                <form class="price-editor" method="POST" action="{{ url_for('artworks.update_artwork_prices', artwork_id=artwork.id) }}">
+                                    <label>
+                                        <span>标价 <small>人民币，单位：元</small></span>
+                                        <input name="price" type="number" min="0" step="10000" value="{{ '%.2f'|format(artwork.price) if artwork.price is not none else '' }}" placeholder="公开价格">
+                                    </label>
+                                    <label>
+                                        <span>底价 <small>人民币，单位：元</small></span>
+                                        <input name="reserve_price" type="number" min="0" step="10000" value="{{ '%.2f'|format(artwork.reserve_price) if artwork.reserve_price is not none else '' }}" placeholder="不公开">
+                                    </label>
+                                    <div class="price-editor-actions">
+                                        <button class="btn btn-secondary" type="submit">保存价格</button>
+                                    </div>
+                                </form>
+                            </div>
+                            <form class="artwork-card-action" method="POST" action="{{ url_for('artworks.delete_artwork', artwork_id=artwork.id) }}" onsubmit="return confirm('确定删除这件藏品吗？删除后将不再展示。');">
+                                <button class="comment-action danger" type="submit">删除</button>
+                            </form>
+                        </article>
+                        {% else %}
+                        <div class="empty-state">
+                            <h3>还没有登记藏品</h3>
+                            <p>登记后会显示在这里。</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="section-title">
+                        <h3>我登记的艺术家</h3>
+                        <span class="text-light">{{ artist_profiles|length }} 位</span>
+                    </div>
+                    <div class="artist-manage-list">
+                        {% for artist in artist_profiles %}
+                        <details class="artist-manage-card">
+                            <summary class="artist-manage-summary">
+                                <span>
+                                    {{ artist.name }}
+                                    {% if artist.is_verified %}<span class="verified-badge">已认证</span>{% endif %}
+                                </span>
+                                <span class="text-light">
+                                    {% if artist.review_status == 'pending' %}审核中{% elif artist.review_status == 'rejected' %}审核未通过{% else %}审核通过{% endif %}
+                                </span>
+                            </summary>
+                            <div class="artist-manage-content">
+                                <p>{{ artist.nationality or '地区未知' }}{% if artist.birth_year %} · {{ artist.birth_year }}{% endif %}</p>
+                                <p class="text-light">{{ artist.bio or '暂无简介' }}</p>
+                                {% if artist.review_note %}
+                                <p class="text-light">审核说明：{{ artist.review_note }}</p>
+                                {% endif %}
+                            </div>
+                            <form class="artist-edit-form" method="POST" action="{{ url_for('profile.update_artist_profile', artist_id=artist.id) }}">
+                                <div class="form-row">
+                                    <label>
+                                        <span>艺术家名称</span>
+                                        <input name="name" type="text" required maxlength="120" value="{{ artist.pending_name if artist.review_status == 'pending' and artist.pending_name else artist.name }}">
+                                    </label>
+                                    <label>
+                                        <span>国籍/地区</span>
+                                        <input name="nationality" type="text" maxlength="80" value="{{ artist.pending_nationality if artist.review_status == 'pending' and artist.pending_nationality else artist.nationality or '' }}">
+                                    </label>
+                                </div>
+                                <div class="form-row">
+                                    <label>
+                                        <span>出生年份</span>
+                                        <input name="birth_year" type="number" min="0" max="2100" value="{{ artist.pending_birth_year if artist.review_status == 'pending' and artist.pending_birth_year else artist.birth_year or '' }}">
+                                    </label>
+                                    <label>
+                                        <span>艺术家简介</span>
+                                        <textarea name="bio" rows="3">{{ artist.pending_bio if artist.review_status == 'pending' and artist.pending_bio else artist.bio or '' }}</textarea>
+                                    </label>
+                                </div>
+                                <button class="btn btn-secondary" type="submit">提交审核</button>
+                            </form>
+                        </details>
+                        {% else %}
+                        <div class="empty-state">
+                            <h3>还没有登记艺术家</h3>
+                            <p>登记藏品时可以新增艺术家档案。</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer"><p>&copy; 2026 ArtMarket. All rights reserved.</p></footer>
+    {% include 'components/assistant_widget.html' %}
+</body>
+</html>

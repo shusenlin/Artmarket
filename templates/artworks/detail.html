@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ artwork.title }} - ArtMarket</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-brand"><a href="/" class="nav-logo">ArtMarket</a></div>
+            {% include 'components/nav_links.html' %}
+        </nav>
+    </header>
+
+    <main class="page-shell">
+        <article class="detail-layout">
+            <div class="detail-media">
+                {% if artwork.images or artwork.video_url %}
+                <div class="detail-media-grid {% if artwork.images|length == 1 %}single-image-grid{% endif %}">
+                    {% if artwork.images %}
+                    <button class="detail-media-card main-image-card" type="button" data-modal-type="album" data-album-index="0" data-modal-title="{{ artwork.title }} 主图">
+                        <img src="{{ artwork.images[0] }}" alt="{{ artwork.title }} 图册封面">
+                    </button>
+                    {% if artwork.images|length > 1 %}
+                    <div class="thumb-gallery">
+                        <div class="thumb-grid" data-thumb-grid></div>
+                        {% if artwork.images|length > 7 %}
+                        <div class="thumb-pagination">
+                            <button class="comment-action" type="button" data-thumb-prev>上一页</button>
+                            <span data-thumb-page></span>
+                            <button class="comment-action" type="button" data-thumb-next>下一页</button>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                    {% if artwork.video_url %}
+                    <button class="detail-media-card video-media-card" type="button" data-modal-type="video" data-modal-src="{{ artwork.video_url }}" data-modal-title="{{ artwork.title }} 视频">
+                        <video src="{{ artwork.video_url }}" preload="metadata" muted></video>
+                        <span class="video-play-mark">播放</span>
+                    </button>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="detail-media-empty">暂无媒体</div>
+                {% endif %}
+            </div>
+
+            <div class="detail-content">
+                <p class="kicker">{{ artwork.category or '未分类藏品' }}</p>
+                <div class="detail-title-row">
+                    <h2>{{ artwork.title }}</h2>
+                    {% if current_user.is_authenticated and current_user.id == artwork.artist_id %}
+                    <form method="POST" action="{{ url_for('artworks.delete_artwork', artwork_id=artwork.id) }}" onsubmit="return confirm('确定删除这件藏品吗？删除后将不再展示。');">
+                        <button class="btn btn-danger" type="submit">删除藏品</button>
+                    </form>
+                    {% endif %}
+                </div>
+                <dl class="meta-list">
+                    <div><dt>登记人</dt><dd>{{ artwork.artist.username }}</dd></div>
+                    <div>
+                        <dt>艺术家</dt>
+                        <dd>
+                            {% if artwork.artist_profile %}
+                            <a class="inline-link" href="{{ url_for('artworks.detail_artist', artist_id=artwork.artist_profile.id) }}">{{ artwork.artist_profile.name }}</a>
+                            {% if artwork.artist_profile.is_verified %}
+                            <span class="verified-badge">已认证</span>
+                            {% endif %}
+                            {% else %}
+                            未建档
+                            {% endif %}
+                        </dd>
+                    </div>
+                    <div><dt>登记时间</dt><dd>{{ artwork.registered_at.strftime('%Y-%m-%d %H:%M') if artwork.registered_at else artwork.created_at.strftime('%Y-%m-%d %H:%M') }}</dd></div>
+                    <div><dt>标价</dt><dd>{{ '人民币 %.2f 元'|format(artwork.price) if artwork.price is not none else '暂无' }}</dd></div>
+                    <div><dt>标签</dt><dd>{{ artwork.tags or '暂无' }}</dd></div>
+                </dl>
+
+                <section class="detail-section">
+                    <h3>藏品描述</h3>
+                    <p>{{ artwork.description or '暂无描述。' }}</p>
+                </section>
+
+                <section class="detail-section">
+                    <h3>创作心路历程</h3>
+                    <p>{{ artwork.creation_process or '暂无记录。' }}</p>
+                </section>
+
+                <section class="detail-section">
+                    <h3>收藏编年史</h3>
+                    <p>{{ artwork.collection_chronology or '暂无记录。' }}</p>
+                </section>
+            </div>
+        </article>
+
+        <section class="comments-section" id="comments">
+            <div class="section-title">
+                <h3>评论区</h3>
+                <span class="text-light">{{ comment_count }} 条评论</span>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="form-message {{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            {% if current_user.is_authenticated %}
+            <form class="comment-form" method="POST" action="{{ url_for('artworks.create_comment', artwork_id=artwork.id) }}">
+                <textarea name="content" rows="3" required placeholder="写下你的评论"></textarea>
+                <button class="btn btn-primary" type="submit">发布评论</button>
+            </form>
+            {% else %}
+            <div class="comment-login">
+                <a class="link-primary" href="{{ url_for('auth.login') }}">登录后参与评论</a>
+            </div>
+            {% endif %}
+
+            <div class="comment-list">
+                {% for comment in comments %}
+                <article class="comment-item">
+                    <div class="comment-avatar">
+                        {% if comment.author.avatar %}
+                        <img src="{{ comment.author.avatar }}" alt="{{ comment.author.username }}">
+                        {% else %}
+                        <span>{{ comment.author.username[:1].upper() }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="comment-body">
+                        <div class="comment-header">
+                            <div class="comment-meta">
+                                <strong>{{ comment.author.username }}</strong>
+                                <span>{{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                            </div>
+                            {% if current_user.is_authenticated %}
+                            <div class="comment-actions">
+                                <button class="comment-action" type="button" data-reply-target="reply-form-{{ comment.id }}">回复</button>
+                                {% if current_user.role == 'admin' or current_user.id == comment.user_id %}
+                                <form method="POST" action="{{ url_for('artworks.delete_comment', artwork_id=artwork.id, comment_id=comment.id) }}" onsubmit="return confirm('确定删除这条评论吗？');">
+                                    <button class="comment-action danger" type="submit">删除</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <p>{{ comment.content }}</p>
+
+                        {% if current_user.is_authenticated %}
+                        <form class="reply-form is-hidden" id="reply-form-{{ comment.id }}" method="POST" action="{{ url_for('artworks.create_comment', artwork_id=artwork.id) }}">
+                            <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                            <textarea name="content" rows="2" required placeholder="回复 {{ comment.author.username }}"></textarea>
+                            <button class="btn btn-secondary" type="submit">回复</button>
+                        </form>
+                        {% endif %}
+
+                        {% for reply in replies_by_root.get(comment.id, []) %}
+                        <article class="comment-item reply-item">
+                            <div class="comment-avatar">
+                                {% if reply.author.avatar %}
+                                <img src="{{ reply.author.avatar }}" alt="{{ reply.author.username }}">
+                                {% else %}
+                                <span>{{ reply.author.username[:1].upper() }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="comment-body">
+                                <div class="comment-header">
+                                    <div class="comment-meta">
+                                        <strong>{{ reply.author.username }}</strong>
+                                        {% if reply.parent and reply.parent.id != comment.id %}
+                                        <span>回复 {{ reply.parent.author.username }}</span>
+                                        {% endif %}
+                                        <span>{{ reply.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                                    </div>
+                                    {% if current_user.is_authenticated %}
+                                    <div class="comment-actions">
+                                        <button class="comment-action" type="button" data-reply-target="reply-form-{{ reply.id }}">回复</button>
+                                        {% if current_user.role == 'admin' or current_user.id == reply.user_id %}
+                                        <form method="POST" action="{{ url_for('artworks.delete_comment', artwork_id=artwork.id, comment_id=reply.id) }}" onsubmit="return confirm('确定删除这条评论吗？');">
+                                            <button class="comment-action danger" type="submit">删除</button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <p>{{ reply.content }}</p>
+                                {% if current_user.is_authenticated %}
+                                <form class="reply-form is-hidden" id="reply-form-{{ reply.id }}" method="POST" action="{{ url_for('artworks.create_comment', artwork_id=artwork.id) }}">
+                                    <input type="hidden" name="parent_id" value="{{ reply.id }}">
+                                    <textarea name="content" rows="2" required placeholder="回复 {{ reply.author.username }}"></textarea>
+                                    <button class="btn btn-secondary" type="submit">回复</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </article>
+                        {% endfor %}
+                    </div>
+                </article>
+                {% else %}
+                <div class="empty-state">
+                    <h3>暂无评论</h3>
+                    <p>成为第一个评论这件藏品的人。</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+
+    <div class="media-modal" id="mediaModal" hidden>
+        <div class="media-modal-backdrop" data-modal-close></div>
+        <div class="media-modal-dialog" role="dialog" aria-modal="true" aria-label="媒体预览">
+            <button class="media-modal-close" type="button" data-modal-close aria-label="关闭">×</button>
+            <button class="media-modal-nav media-modal-prev" type="button" data-album-prev aria-label="上一张">‹</button>
+            <div class="media-modal-content" id="mediaModalContent"></div>
+            <button class="media-modal-nav media-modal-next" type="button" data-album-next aria-label="下一张">›</button>
+            <div class="media-modal-counter" id="mediaModalCounter"></div>
+        </div>
+    </div>
+
+    <footer class="footer"><p>&copy; 2026 ArtMarket. All rights reserved.</p></footer>
+    <script>
+        const mediaModal = document.getElementById('mediaModal');
+        const mediaModalContent = document.getElementById('mediaModalContent');
+        const mediaModalCounter = document.getElementById('mediaModalCounter');
+        const albumImages = {{ artwork.images|tojson }};
+        let activeAlbumIndex = 0;
+        let thumbPage = 0;
+        const thumbsPerPage = 6;
+        const thumbImages = albumImages.slice(1);
+        const thumbGrid = document.querySelector('[data-thumb-grid]');
+        const thumbPageLabel = document.querySelector('[data-thumb-page]');
+        const thumbPrev = document.querySelector('[data-thumb-prev]');
+        const thumbNext = document.querySelector('[data-thumb-next]');
+
+        function renderThumbs() {
+            if (!thumbGrid) return;
+            const totalPages = Math.max(1, Math.ceil(thumbImages.length / thumbsPerPage));
+            thumbPage = Math.min(Math.max(thumbPage, 0), totalPages - 1);
+            const start = thumbPage * thumbsPerPage;
+            const pageItems = thumbImages.slice(start, start + thumbsPerPage);
+
+            thumbGrid.innerHTML = pageItems.map((src, index) => {
+                const albumIndex = start + index + 1;
+                return `
+                    <button class="detail-media-card thumb-card" type="button" data-modal-type="album" data-album-index="${albumIndex}">
+                        <img src="${src}" alt="{{ artwork.title }} 图片 ${albumIndex + 1}">
+                    </button>
+                `;
+            }).join('');
+
+            thumbGrid.querySelectorAll('[data-modal-type="album"]').forEach(button => {
+                button.addEventListener('click', () => {
+                    showAlbumImage(Number(button.dataset.albumIndex || 0));
+                });
+            });
+
+            if (thumbPageLabel) thumbPageLabel.textContent = `${thumbPage + 1} / ${totalPages}`;
+            if (thumbPrev) thumbPrev.disabled = thumbPage === 0;
+            if (thumbNext) thumbNext.disabled = thumbPage >= totalPages - 1;
+        }
+
+        function renderAlbumImage() {
+            const src = albumImages[activeAlbumIndex];
+            mediaModalContent.innerHTML = `<img src="${src}" alt="{{ artwork.title }} 图片 ${activeAlbumIndex + 1}">`;
+            mediaModalCounter.textContent = albumImages.length > 1
+                ? `${activeAlbumIndex + 1} / ${albumImages.length}`
+                : '';
+            document.querySelectorAll('[data-album-prev], [data-album-next]').forEach(button => {
+                button.hidden = albumImages.length <= 1;
+            });
+        }
+
+        function showAlbumImage(index) {
+            if (!albumImages.length) return;
+            activeAlbumIndex = (index + albumImages.length) % albumImages.length;
+            renderAlbumImage();
+            mediaModal.hidden = false;
+        }
+
+        function closeMediaModal() {
+            mediaModal.hidden = true;
+            mediaModalContent.innerHTML = '';
+            mediaModalCounter.textContent = '';
+        }
+
+        document.querySelectorAll('[data-modal-type]').forEach(button => {
+            button.addEventListener('click', () => {
+                if (button.dataset.modalType === 'album') {
+                    showAlbumImage(Number(button.dataset.albumIndex || 0));
+                    return;
+                }
+                const src = button.dataset.modalSrc;
+                mediaModalContent.innerHTML = `<video src="${src}" controls autoplay playsinline></video>`;
+                mediaModalCounter.textContent = '';
+                document.querySelectorAll('[data-album-prev], [data-album-next]').forEach(nav => {
+                    nav.hidden = true;
+                });
+                mediaModal.hidden = false;
+            });
+        });
+
+        document.querySelector('[data-album-prev]').addEventListener('click', () => {
+            showAlbumImage(activeAlbumIndex - 1);
+        });
+
+        document.querySelector('[data-album-next]').addEventListener('click', () => {
+            showAlbumImage(activeAlbumIndex + 1);
+        });
+
+        if (thumbPrev) {
+            thumbPrev.addEventListener('click', () => {
+                thumbPage -= 1;
+                renderThumbs();
+            });
+        }
+
+        if (thumbNext) {
+            thumbNext.addEventListener('click', () => {
+                thumbPage += 1;
+                renderThumbs();
+            });
+        }
+
+        renderThumbs();
+
+        document.querySelectorAll('[data-modal-close]').forEach(element => {
+            element.addEventListener('click', closeMediaModal);
+        });
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !mediaModal.hidden) {
+                closeMediaModal();
+            }
+            if (!mediaModal.hidden && albumImages.length > 1 && mediaModalContent.querySelector('img')) {
+                if (event.key === 'ArrowLeft') showAlbumImage(activeAlbumIndex - 1);
+                if (event.key === 'ArrowRight') showAlbumImage(activeAlbumIndex + 1);
+            }
+        });
+
+        document.querySelectorAll('[data-reply-target]').forEach(button => {
+            button.addEventListener('click', () => {
+                const form = document.getElementById(button.dataset.replyTarget);
+                if (!form) return;
+                form.classList.toggle('is-hidden');
+                const textarea = form.querySelector('textarea');
+                if (!form.classList.contains('is-hidden') && textarea) {
+                    textarea.focus();
+                }
+            });
+        });
+    </script>
+    {% include 'components/assistant_widget.html' %}
+</body>
+</html>

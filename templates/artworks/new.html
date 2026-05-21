@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登记藏品 - ArtMarket</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body>
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-brand"><a href="/" class="nav-logo">ArtMarket</a></div>
+            {% include 'components/nav_links.html' %}
+        </nav>
+    </header>
+
+    <main class="form-page">
+        <section class="wide-form-card">
+            <div class="auth-header">
+                <h2>藏品登记</h2>
+                <p>记录藏品图片、描述、创作心路历程与收藏编年史。</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="form-message {{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <form class="auth-form" method="POST" action="{{ url_for('artworks.create_artwork') }}" enctype="multipart/form-data">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="title">藏品名称</label>
+                        <input id="title" name="title" type="text" required maxlength="200" placeholder="例如：春山行旅图">
+                    </div>
+                    <div class="form-group">
+                        <label for="category">分类</label>
+                        <select id="category" name="category" required>
+                            <option value="">请选择分类</option>
+                            {% for category in categories %}
+                            <option value="{{ category }}">{{ category }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="artist-profile-box">
+                    <label>艺术家档案</label>
+                    <div class="segmented-control">
+                        <label><input type="radio" name="artist_mode" value="existing" checked> 选择已有艺术家</label>
+                        <label><input type="radio" name="artist_mode" value="new"> 新增艺术家</label>
+                    </div>
+                    <div class="form-group" data-artist-existing>
+                        <select id="artist_profile_id" name="artist_profile_id">
+                            <option value="">请选择艺术家</option>
+                            {% for artist in artist_profiles %}
+                            <option value="{{ artist.id }}">{{ artist.name }}{% if artist.is_verified %}（已认证）{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                        <small>选择已有档案可用于按艺术家分类展示。</small>
+                    </div>
+                    <div class="artist-new-fields is-hidden" data-artist-new>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="new_artist_name">艺术家名称</label>
+                                <input id="new_artist_name" name="new_artist_name" type="text" maxlength="120" placeholder="例如：张三">
+                            </div>
+                            <div class="form-group">
+                                <label for="new_artist_nationality">国籍/地区</label>
+                                <input id="new_artist_nationality" name="new_artist_nationality" type="text" maxlength="80" placeholder="例如：中国">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="new_artist_birth_year">出生年份</label>
+                                <input id="new_artist_birth_year" name="new_artist_birth_year" type="number" min="0" max="2100" step="1" placeholder="例如：1980">
+                            </div>
+                            <div class="form-group">
+                                <label for="new_artist_bio">艺术家简介</label>
+                                <textarea id="new_artist_bio" name="new_artist_bio" rows="3" placeholder="简要介绍艺术家经历、风格或创作方向"></textarea>
+                            </div>
+                        </div>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="new_artist_is_self" value="true">
+                            <span>这是本人，将该艺术家档案关联到我的账号</span>
+                        </label>
+                        <small>新增艺术家会作为独立档案保存；只有勾选“这是本人”时才会关联当前用户账号。</small>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="price">标价 <span class="field-unit">人民币，单位：元</span></label>
+                        <input id="price" name="price" type="number" min="0" step="10000" placeholder="公开展示的价格">
+                    </div>
+                    <div class="form-group">
+                        <label for="reserve_price">底价 <span class="field-unit">人民币，单位：元</span></label>
+                        <input id="reserve_price" name="reserve_price" type="number" min="0" step="10000" placeholder="不公开展示，仅保存">
+                    </div>
+                </div>
+
+                <div class="media-upload-row">
+                    <div class="form-group">
+                        <label for="artwork_images">藏品图片</label>
+                        <label class="upload-dropzone" id="artworkDropzone" for="artwork_images">
+                            <span class="upload-title">选择图片或拖拽到这里</span>
+                            <span class="upload-hint">支持多选，png、jpg、jpeg、gif、webp</span>
+                        </label>
+                        <input class="upload-input" id="artwork_images" name="artwork_images" type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple required>
+                        <div class="upload-preview" id="artworkPreview" aria-live="polite"></div>
+                        <small>至少上传一张图片，第一张图片作为封面。</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="artwork_video">藏品视频</label>
+                        <label class="upload-dropzone" id="videoDropzone" for="artwork_video">
+                            <span class="upload-title">选择视频或拖拽到这里</span>
+                            <span class="upload-hint">支持 mp4、webm、ogg、mov</span>
+                        </label>
+                        <input class="upload-input" id="artwork_video" name="artwork_video" type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime">
+                        <div class="upload-preview video-preview" id="videoPreview" aria-live="polite"></div>
+                        <small>视频会保存到本地 static/uploads/videos 目录。</small>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">藏品描述</label>
+                    <textarea id="description" name="description" rows="4" placeholder="材质、尺寸、年代、题材、状态等信息"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="creation_process">创作心路历程</label>
+                    <textarea id="creation_process" name="creation_process" rows="5" placeholder="记录创作动机、技法探索、情绪变化和创作背景"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="collection_chronology">收藏编年史</label>
+                    <textarea id="collection_chronology" name="collection_chronology" rows="5" placeholder="例如：2022 年完成；2024 年首次展出；2026 年由本人登记收藏"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="tags">标签</label>
+                    <input id="tags" name="tags" type="text" maxlength="255" placeholder="逗号分隔，例如：水墨, 当代, 山水">
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">提交登记</button>
+            </form>
+        </section>
+    </main>
+
+    <footer class="footer"><p>&copy; 2026 ArtMarket. All rights reserved.</p></footer>
+    <script>
+        const imageInput = document.getElementById('artwork_images');
+        const dropzone = document.getElementById('artworkDropzone');
+        const preview = document.getElementById('artworkPreview');
+        const videoInput = document.getElementById('artwork_video');
+        const videoDropzone = document.getElementById('videoDropzone');
+        const videoPreview = document.getElementById('videoPreview');
+        const artistModeInputs = document.querySelectorAll('input[name="artist_mode"]');
+        const artistExisting = document.querySelector('[data-artist-existing]');
+        const artistNew = document.querySelector('[data-artist-new]');
+        const artistSelect = document.getElementById('artist_profile_id');
+        const newArtistName = document.getElementById('new_artist_name');
+
+        function syncArtistMode() {
+            const mode = document.querySelector('input[name="artist_mode"]:checked').value;
+            const creating = mode === 'new';
+            artistExisting.classList.toggle('is-hidden', creating);
+            artistNew.classList.toggle('is-hidden', !creating);
+            artistSelect.required = !creating;
+            newArtistName.required = creating;
+        }
+
+        artistModeInputs.forEach(input => input.addEventListener('change', syncArtistMode));
+        syncArtistMode();
+
+        function renderSelectedFiles(files) {
+            const images = Array.from(files).filter(file => file.type.startsWith('image/'));
+            preview.innerHTML = images.map(file => `
+                <div class="upload-preview-item">
+                    <img src="${URL.createObjectURL(file)}" alt="${file.name}">
+                    <span>${file.name}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderSelectedVideo(files) {
+            const video = Array.from(files).find(file => file.type.startsWith('video/'));
+            videoPreview.innerHTML = video ? `
+                <div class="upload-preview-item video-preview-item">
+                    <video src="${URL.createObjectURL(video)}" controls></video>
+                    <span>${video.name}</span>
+                </div>
+            ` : '';
+        }
+
+        imageInput.addEventListener('change', () => renderSelectedFiles(imageInput.files));
+        videoInput.addEventListener('change', () => renderSelectedVideo(videoInput.files));
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, event => {
+                event.preventDefault();
+                dropzone.classList.add('drag-over');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, event => {
+                event.preventDefault();
+                dropzone.classList.remove('drag-over');
+            });
+        });
+
+        dropzone.addEventListener('drop', event => {
+            const transfer = new DataTransfer();
+            Array.from(event.dataTransfer.files)
+                .filter(file => file.type.startsWith('image/'))
+                .forEach(file => transfer.items.add(file));
+            imageInput.files = transfer.files;
+            renderSelectedFiles(imageInput.files);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            videoDropzone.addEventListener(eventName, event => {
+                event.preventDefault();
+                videoDropzone.classList.add('drag-over');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            videoDropzone.addEventListener(eventName, event => {
+                event.preventDefault();
+                videoDropzone.classList.remove('drag-over');
+            });
+        });
+
+        videoDropzone.addEventListener('drop', event => {
+            const video = Array.from(event.dataTransfer.files).find(file => file.type.startsWith('video/'));
+            const transfer = new DataTransfer();
+            if (video) transfer.items.add(video);
+            videoInput.files = transfer.files;
+            renderSelectedVideo(videoInput.files);
+        });
+    </script>
+    {% include 'components/assistant_widget.html' %}
+</body>
+</html>

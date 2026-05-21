@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - 页面未找到 | ArtMarket</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .error-page { min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem; }
+        .error-code { font-size: 4rem; font-weight: 700; color: var(--primary-color); margin-bottom: 1rem; }
+        .error-msg { font-size: 1.25rem; color: var(--text-light); margin-bottom: 2rem; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-brand"><a href="/" class="nav-logo">ArtMarket</a></div>
+            {% include 'components/nav_links.html' %}
+        </nav>
+    </header>
+    <main class="error-page">
+        <div class="error-code">404</div>
+        <h1>页面未找到</h1>
+        <p class="error-msg">抱歉，您访问的页面不存在或已被移除</p>
+        <a href="/" class="btn btn-primary">返回首页</a>
+    </main>
+    <footer class="footer"><p>&copy; 2026 ArtMarket. All rights reserved.</p></footer>
+</body>
+</html>

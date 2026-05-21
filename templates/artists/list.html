@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>艺术家 - ArtMarket</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-brand"><a href="/" class="nav-logo">ArtMarket</a></div>
+            {% include 'components/nav_links.html' %}
+        </nav>
+    </header>
+
+    <main class="page-shell">
+        <div class="page-heading">
+            <div>
+                <h2>艺术家</h2>
+                <p>浏览已建档艺术家及其平台藏品。</p>
+            </div>
+        </div>
+
+        <section class="artist-grid">
+            {% for artist in artists %}
+            <a class="artist-card" href="{{ url_for('artworks.detail_artist', artist_id=artist.id) }}">
+                <div class="artist-card-avatar">{{ artist.name[:1].upper() }}</div>
+                <div>
+                    <h3>{{ artist.name }}{% if artist.is_verified %}<span class="verified-badge">已认证</span>{% endif %}</h3>
+                    <p>{{ artist.nationality or '地区未知' }}{% if artist.birth_year %} · {{ artist.birth_year }} 年生{% endif %}</p>
+                    <p class="text-light">{{ artist.bio or '暂无简介' }}</p>
+                    <span class="text-light">{{ artist.artworks.filter_by(is_deleted=False).count() }} 件藏品</span>
+                </div>
+            </a>
+            {% else %}
+            <div class="empty-state">
+                <h3>暂无艺术家档案</h3>
+                <p>登记藏品时可以创建第一位艺术家。</p>
+            </div>
+            {% endfor %}
+        </section>
+    </main>
+
+    <footer class="footer"><p>&copy; 2026 ArtMarket. All rights reserved.</p></footer>
+    {% include 'components/assistant_widget.html' %}
+</body>
+</html>
